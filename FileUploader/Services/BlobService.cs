@@ -37,19 +37,36 @@ namespace FileUploader.Services
 
             Console.WriteLine($"Downloading '{blobName}' from container '{_containerClient.Name}'...");
 
-            BlobDownloadResult downloadResult = await blobClient.DownloadContentAsync();
-            
-            // TO DO: download and return dto
+            BlobDownloadResult result = await blobClient.DownloadContentAsync();
 
-            return new BlobDownloadDto();
+            var stream = result.Content.ToStream();
+
+            var properties = await blobClient.GetPropertiesAsync();
+            var contentType = properties.Value.ContentType ?? "application/octet-stream";
+
+            return new BlobDownloadDto()
+            {
+                Stream = stream,
+                Name = blobClient.Name,
+                ContentType = contentType
+            };
         }
 
-        public async Task UploadBlobAsync(string blobName, Stream content)
+        public async Task UploadBlobAsync(string blobName, string contentType, Stream content)
         {
             await _containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
 
             var blobClient = _containerClient.GetBlobClient(blobName);
-            await blobClient.UploadAsync(content, true);
+
+            var headers = new BlobHttpHeaders()
+            {
+                ContentType = contentType
+            };
+            
+            await blobClient.UploadAsync(content, new BlobUploadOptions()
+            {
+                HttpHeaders = headers
+            });
 
             Console.WriteLine($"Uploaded blob '{blobName}' to container '{_containerClient.Name}'");
         }

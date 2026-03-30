@@ -25,8 +25,12 @@ namespace FileUploader.Controllers
         [HttpPost]
         public async Task<IActionResult> Upload(IFormFile file)
         {
-            
-            // TO DO: pass stream to await _blobService.UploadBlobAsync(file.FileName, stream);
+            using (var stream = new MemoryStream())
+            {
+                await file.CopyToAsync(stream);
+                stream.Position = 0;
+                await _blobService.UploadBlobAsync(file.FileName, file.ContentType, stream);
+            }
 
             return NoContent();
         }
